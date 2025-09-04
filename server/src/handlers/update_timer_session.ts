@@ -1,21 +1,44 @@
+import { db } from '../db';
+import { timerSessionsTable } from '../db/schema';
 import { type UpdateTimerSessionInput, type TimerSession } from '../schema';
+import { eq } from 'drizzle-orm';
 
 export const updateTimerSession = async (input: UpdateTimerSessionInput): Promise<TimerSession | null> => {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is updating an existing timer session in the database
-    // with new state (remaining time, running status, completion status).
-    // Returns null if the timer session is not found.
-    
+  try {
     const { id, remaining_seconds, is_running, is_completed } = input;
+
+    // Build update object with only provided fields
+    const updateData: any = {
+      updated_at: new Date()
+    };
+
+    if (remaining_seconds !== undefined) {
+      updateData.remaining_seconds = remaining_seconds;
+    }
     
-    // Placeholder implementation - should update database record
-    return Promise.resolve({
-        id: id,
-        duration_seconds: 240, // Should come from existing record
-        remaining_seconds: remaining_seconds ?? 180,
-        is_running: is_running ?? false,
-        is_completed: is_completed ?? false,
-        created_at: new Date(), // Should come from existing record
-        updated_at: new Date() // Should be updated to current time
-    } as TimerSession);
+    if (is_running !== undefined) {
+      updateData.is_running = is_running;
+    }
+    
+    if (is_completed !== undefined) {
+      updateData.is_completed = is_completed;
+    }
+
+    // Update the timer session
+    const result = await db.update(timerSessionsTable)
+      .set(updateData)
+      .where(eq(timerSessionsTable.id, id))
+      .returning()
+      .execute();
+
+    // Return null if no record was found/updated
+    if (result.length === 0) {
+      return null;
+    }
+
+    return result[0];
+  } catch (error) {
+    console.error('Timer session update failed:', error);
+    throw error;
+  }
 };

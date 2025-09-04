@@ -1,18 +1,27 @@
+import { db } from '../db';
+import { timerSessionsTable } from '../db/schema';
 import { type CreateTimerSessionInput, type TimerSession } from '../schema';
 
 export const createTimerSession = async (input: CreateTimerSessionInput): Promise<TimerSession> => {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is creating a new timer session with the specified duration
-    // and persisting it in the database with initial state (not running, not completed).
-    const durationSeconds = input.duration_seconds || 240; // Default to 4 minutes
-    
-    return Promise.resolve({
-        id: 1, // Placeholder ID
-        duration_seconds: durationSeconds,
-        remaining_seconds: durationSeconds, // Initially equals duration
-        is_running: false,
-        is_completed: false,
-        created_at: new Date(),
-        updated_at: new Date()
-    } as TimerSession);
+  try {
+    // Insert timer session record with initial state
+    const result = await db.insert(timerSessionsTable)
+      .values({
+        duration_seconds: input.duration_seconds,
+        remaining_seconds: input.duration_seconds, // Initially equals duration
+        is_running: false, // Timer starts in stopped state
+        is_completed: false, // Timer is not completed initially
+      })
+      .returning()
+      .execute();
+
+    // Return the created timer session
+    const timerSession = result[0];
+    return {
+      ...timerSession,
+    };
+  } catch (error) {
+    console.error('Timer session creation failed:', error);
+    throw error;
+  }
 };

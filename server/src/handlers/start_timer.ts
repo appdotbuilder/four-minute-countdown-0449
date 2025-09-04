@@ -1,19 +1,29 @@
+import { db } from '../db';
+import { timerSessionsTable } from '../db/schema';
 import { type TimerSession } from '../schema';
+import { eq, sql } from 'drizzle-orm';
 
 export const startTimer = async (id: number): Promise<TimerSession | null> => {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is starting a timer by setting is_running to true
-    // and updating the updated_at timestamp.
-    // Returns null if the timer session is not found.
-    
-    // Placeholder implementation - should update database record
-    return Promise.resolve({
-        id: id,
-        duration_seconds: 240,
-        remaining_seconds: 180, // Should come from existing record
-        is_running: true, // Set to running
-        is_completed: false,
-        created_at: new Date(), // Should come from existing record
-        updated_at: new Date() // Updated timestamp
-    } as TimerSession);
+  try {
+    // Update the timer session to set is_running to true and update timestamp
+    const result = await db.update(timerSessionsTable)
+      .set({
+        is_running: true,
+        updated_at: sql`NOW()` // Use SQL NOW() for accurate server timestamp
+      })
+      .where(eq(timerSessionsTable.id, id))
+      .returning()
+      .execute();
+
+    // Return null if no record was found/updated
+    if (result.length === 0) {
+      return null;
+    }
+
+    // Return the updated timer session
+    return result[0];
+  } catch (error) {
+    console.error('Timer start failed:', error);
+    throw error;
+  }
 };

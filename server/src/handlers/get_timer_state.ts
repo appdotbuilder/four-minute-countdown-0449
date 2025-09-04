@@ -1,4 +1,7 @@
+import { db } from '../db';
+import { timerSessionsTable } from '../db/schema';
 import { type TimerState } from '../schema';
+import { eq } from 'drizzle-orm';
 
 // Helper function to format seconds into MM:SS format
 const formatTime = (seconds: number): string => {
@@ -8,24 +11,31 @@ const formatTime = (seconds: number): string => {
 };
 
 export const getTimerState = async (id: number): Promise<TimerState | null> => {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching a timer session and returning its state
-    // with formatted time display (MM:SS format).
-    // Returns null if the timer session is not found.
-    
-    // Placeholder implementation - should query database by ID
-    if (id <= 0) {
-        return null;
+    try {
+        // Query the database for the timer session
+        const results = await db.select()
+            .from(timerSessionsTable)
+            .where(eq(timerSessionsTable.id, id))
+            .execute();
+
+        // Return null if timer session not found
+        if (results.length === 0) {
+            return null;
+        }
+
+        const session = results[0];
+
+        // Return the timer state with formatted time
+        return {
+            id: session.id,
+            duration_seconds: session.duration_seconds,
+            remaining_seconds: session.remaining_seconds,
+            is_running: session.is_running,
+            is_completed: session.is_completed,
+            formatted_time: formatTime(session.remaining_seconds)
+        };
+    } catch (error) {
+        console.error('Get timer state failed:', error);
+        throw error;
     }
-    
-    const remainingSeconds = 180; // Example: 3 minutes remaining
-    
-    return Promise.resolve({
-        id: id,
-        duration_seconds: 240,
-        remaining_seconds: remainingSeconds,
-        is_running: false,
-        is_completed: false,
-        formatted_time: formatTime(remainingSeconds) // Format as MM:SS
-    } as TimerState);
 };
